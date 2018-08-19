@@ -1,5 +1,5 @@
 # MiniThunder
-Android迷你版迅雷，支持 thunder:// ftp:// http:// ed2k:// 磁力链的下载。  
+Android 迷你版迅雷，支持 thunder:// ftp:// http:// ed2k:// 磁力链的下载。  
 在 [安卓迅雷模块](https://github.com/oceanzhang01/MiniThunder) 的基础上增加了下载列表。
 
 ![alt](preview.png)
