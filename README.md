@@ -5,4 +5,4 @@ Android迷你版迅雷，支持 thunder:// ftp:// http:// ed2k:// 磁力链的�
 ![alt](preview.png)
 
 ### 期望
-有大佬可以把安卓迅雷移植到 Linux 平台，少可以尝试移植到 Linux 的 Java UI。
+有大佬可以把安卓迅雷移植到 Linux 平台，可以尝试移植到 Linux 的 Java UI。
