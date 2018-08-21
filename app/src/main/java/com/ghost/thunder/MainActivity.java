@@ -1,8 +1,13 @@
 package com.ghost.thunder;
 
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
@@ -15,6 +20,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -26,8 +32,11 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.ghost.thunder.demo.R;
 
 import com.xunlei.downloadlib.XLTaskHelper;
@@ -40,10 +49,8 @@ import java.util.TimeZone;
 
 public class MainActivity extends AppCompatActivity {
 
-    EditText edit_url;
-    Button button_download;
-    TextView textView_status;
-    String filepath = "";
+    EditText editText_new_url, editText_new_path;
+    String filepath = "", path = "";
     SimpleDateFormat SDF = new SimpleDateFormat("HH:mm:ss");
     ArrayList<Download> list_download = new ArrayList<Download>();
     ListView listView;
@@ -57,27 +64,6 @@ public class MainActivity extends AppCompatActivity {
                 long taskId = (long) msg.obj;
                 XLTaskInfo taskInfo = XLTaskHelper.instance(getApplicationContext()).getTaskInfo(taskId);
                 filepath = Environment.getExternalStorageDirectory().getPath() + "/" + taskInfo.mFileName;
-                /*
-                int progress;
-                if(taskInfo.mFileSize != 0){
-                    progress = (int)(taskInfo.mDownloadSize * 100 / taskInfo.mFileSize);
-                }else{
-                    progress = 0;
-                }
-                long duration_left = 0;
-                if(taskInfo.mDownloadSpeed != 0){
-                    duration_left = (taskInfo.mFileSize - taskInfo.mDownloadSize) / taskInfo.mDownloadSpeed * 1000;
-                }
-                Date date = new Date(duration_left);
-
-                textView_status.setText("文件大小：" + convertFileSize(taskInfo.mFileSize)
-                        + "\n已下载：" + convertFileSize(taskInfo.mDownloadSize)
-                        + "\n进度：" + String.valueOf(percent) + "%"
-                        + "\n速度：" + convertFileSize(taskInfo.mDownloadSpeed) + "/s"
-                        + "\nDCDN速度：" + convertFileSize(taskInfo.mAdditionalResDCDNSpeed) + "/s"
-                        + "\n剩余时间：" + SDF.format(date)
-                        + "\n文件名称：" + taskInfo.mFileName);
-                */
                 for(int i=0; i<list_download.size(); i++){
                     if(list_download.get(i).taskId == taskId){
                         Log.e("tackId", taskId + "");
@@ -90,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                handler.sendMessageDelayed(handler.obtainMessage(0,taskId),1000);
+                handler.sendMessageDelayed(handler.obtainMessage(0, taskId), 1000);
             }
         }
     };
@@ -99,13 +85,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        path = Environment.getExternalStorageDirectory().getPath() + "/";
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         SDF.setTimeZone(TimeZone.getTimeZone("GMT+00:00"));
         XLTaskHelper.init(getApplicationContext());
-
-        edit_url = (EditText) findViewById(R.id.edit_url);
-        button_download = (Button) findViewById(R.id.button_down);
-        textView_status = (TextView) findViewById(R.id.textView_status);
 
         listView = (ListView) findViewById(R.id.listView);
         adapter = new MyBaseAdapter();
@@ -129,35 +112,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-        button_download.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                InputMethodManager IMM = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                IMM.hideSoftInputFromWindow(edit_url.getWindowToken(), 0);
-                if(!TextUtils.isEmpty(edit_url.getText())) {
-                    long taskId = 0;
-                    try {
-                        String url = edit_url.getText().toString();
-                        String path = Environment.getExternalStorageDirectory().getPath() + "/";
-                        taskId = XLTaskHelper.instance(getApplicationContext()).addThunderTask(url, path, null);
-                        String filename = XLTaskHelper.instance(getApplicationContext()).getFileName(edit_url.getText().toString());
-                        list_download.add(new Download(taskId, url, path, filename));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    handler.sendMessage(handler.obtainMessage(0,taskId));
-                }
-            }
-        });
-
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, 0, 0, "退出");
+        menu.add(0, 0, 0, "新建");
         menu.add(0, 1, 1, "关于");
         menu.add(0, 2, 2, "更新日志");
+        menu.add(0, 3, 3, "退出");
         return true;
     }
 
@@ -166,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
         int item_id = item.getItemId();
         switch (item_id) {
             case 0:
-                finish();
+                dialog_new_download();
                 break;
             case 1:
                 new AlertDialog.Builder(this).setIcon(R.mipmap.ic_launcher)
@@ -180,6 +142,9 @@ public class MainActivity extends AppCompatActivity {
                         .setTitle("更新日志")
                         .setMessage("V1.0 (2018)\n1.增加打开文件、进度百分比、字节转换、剩余时长、下载列表、列表更新。")
                         .setPositiveButton("确定", null).show();
+                break;
+            case 3:
+                finish();
                 break;
         }
         return true;
@@ -209,6 +174,108 @@ public class MainActivity extends AppCompatActivity {
             return String.format(f > 100 ? "%.0f KB" : "%.1f KB", f);
         } else
             return String.format("%d B", size);
+    }
+
+
+    void dialog_new_download(){
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_new_download, null, false);
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("新建下载")
+                .setIcon(R.mipmap.ic_launcher)
+                .setView(view)
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog,	int which) {
+                        //Toast.makeText(getApplicationContext(), "开始下载", Toast.LENGTH_SHORT).show();
+                        String url = editText_new_url.getText().toString();
+                        if(!url.equals("")) {
+                            long taskId = 0;
+                            try {
+                                taskId = XLTaskHelper.instance(getApplicationContext()).addThunderTask(url, path, null);
+                                String filename = XLTaskHelper.instance(getApplicationContext()).getFileName(editText_new_url.getText().toString());
+                                list_download.add(new Download(taskId, url, path, filename));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            handler.sendMessage(handler.obtainMessage(0, taskId));
+                        }
+                    }
+                })
+                .setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog,	int which) {
+                    }
+                })
+                .setNeutralButton("打开BT种子", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog,	int which) {
+                        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                        intent.setType("application/x-bittorrent");
+                        startActivityForResult(intent, 2);
+                    }
+                })
+                .create();
+
+        editText_new_url = (EditText) view.findViewById(R.id.editText_new_url);
+        EditText editText_new_filename = (EditText) view.findViewById(R.id.editText_new_filename);
+        editText_new_path = (EditText) view.findViewById(R.id.editText_new_path);
+        ImageButton imageButton_path = (ImageButton) view.findViewById(R.id.imageButton_path);
+
+        // 获取剪贴板文本，填入网址和文件名
+        ClipboardManager CM = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        ClipData data = CM.getPrimaryClip();
+        ClipData.Item item = data.getItemAt(0);
+        String s = item.getText().toString();
+        if(s.contains("://") || s.startsWith("magnet:?xt=urn:btih:")){
+            editText_new_url.setText(s);
+            editText_new_filename.setText(XLTaskHelper.instance(getApplicationContext()).getFileName(s));
+        }
+
+        String path = Environment.getExternalStorageDirectory().getPath() + "/";
+        editText_new_path.setText(path);
+
+        dialog.show();
+
+        //此处设置位置窗体大小，我这里设置为了手机屏幕宽度的3/4
+        //dialog.getWindow().setLayout((ScreenUtils.getScreenWidth(this)/4*3), LinearLayout.LayoutParams.WRAP_CONTENT);
+
+        imageButton_path.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("*/*");
+                startActivityForResult(intent, 1);
+            }
+        });
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == Activity.RESULT_OK) { //是否选择，没选择就不会继续
+            Uri uri = data.getData();   // 得到uri，后面就是将uri转化成file的过程。
+            //String scheme = uri.getScheme();
+            Log.e("uri", uri.toString());
+            String[] projection = { "_data" };
+            Cursor cursor  = getContentResolver().query(uri, projection, null, null, null);
+            if(cursor != null) {
+                int column_index = cursor.getColumnIndexOrThrow("_data");
+                cursor.moveToFirst();
+                String filepath = cursor.getString(column_index);
+                Log.e("filepath", filepath);
+                if (requestCode == 1) {
+                    int endIndex = filepath.lastIndexOf("/");
+                    if (endIndex != -1) {
+                        path = filepath.substring(0, endIndex);
+                        Log.e("path", path);
+                        //Toast.makeText(MainActivity.this, path, Toast.LENGTH_SHORT).show();
+                        editText_new_path.setText(path);
+                    }
+                } else if (requestCode == 2) {
+                    Toast.makeText(MainActivity.this, filepath, Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
     }
 
 
