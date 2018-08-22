@@ -140,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
                 new AlertDialog.Builder(this)
                         .setIcon(R.mipmap.ic_launcher)
                         .setTitle("更新日志")
-                        .setMessage("V1.0 (2018)\n1.增加打开文件、进度百分比、字节转换、剩余时长、下载列表、列表更新。")
+                        .setMessage("V1.0 (2018)\n1.增加打开文件、进度百分比、字节转换、剩余时长、下载列表、列表更新、新建下载对话框。")
                         .setPositiveButton("确定", null).show();
                 break;
             case 3:
@@ -224,13 +224,14 @@ public class MainActivity extends AppCompatActivity {
         // 获取剪贴板文本，填入网址和文件名
         ClipboardManager CM = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
         ClipData data = CM.getPrimaryClip();
-        ClipData.Item item = data.getItemAt(0);
-        String s = item.getText().toString();
-        if(s.contains("://") || s.startsWith("magnet:?xt=urn:btih:")){
-            editText_new_url.setText(s);
-            editText_new_filename.setText(XLTaskHelper.instance(getApplicationContext()).getFileName(s));
+        if(data != null) {
+            ClipData.Item item = data.getItemAt(0);
+            String s = item.getText().toString();
+            if (s.contains("://") || s.startsWith("magnet:?xt=urn:btih:")) {
+                editText_new_url.setText(s);
+                editText_new_filename.setText(XLTaskHelper.instance(getApplicationContext()).getFileName(s));
+            }
         }
-
         String path = Environment.getExternalStorageDirectory().getPath() + "/";
         editText_new_path.setText(path);
 
