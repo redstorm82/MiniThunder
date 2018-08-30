@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
@@ -17,7 +16,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -26,14 +24,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -52,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
     EditText editText_new_url, editText_new_path;
     String filepath = "", path = "";
     SimpleDateFormat SDF = new SimpleDateFormat("HH:mm:ss");
-    ArrayList<Download> list_download = new ArrayList<Download>();
+    ArrayList<Download> list_download = new ArrayList<>();
     ListView listView;
     MyBaseAdapter adapter;
 
@@ -311,6 +308,7 @@ public class MainActivity extends AppCompatActivity {
             TextView textView_downloadSpeed = (TextView) view.findViewById(R.id.textView_downloadSpeed);
             TextView textView_DCDNSpeed = (TextView) view.findViewById(R.id.textView_DCDNSpeed);
             TextView textView_timeLeft = (TextView) view.findViewById(R.id.textView_timeLeft);
+            ProgressBar progressBar = (ProgressBar) view.findViewById(R.id.progressBar);
 
             int j = getCount() - i -1; // 实现倒序
             textView_taskId.setText("taskId：" + list_download.get(j).taskId + "");
@@ -326,6 +324,7 @@ public class MainActivity extends AppCompatActivity {
                 progress = 0;
             }
             textView_progress.setText("进度：" + progress + "%");
+            progressBar.setProgress(progress);
 
             textView_downloadSpeed.setText("速度：" + convertFileSize(list_download.get(j).mDownloadSpeed) + "/s");
             textView_DCDNSpeed.setText("DCDN速度：" + convertFileSize(list_download.get(j).mAdditionalResDCDNSpeed) + "/s");
